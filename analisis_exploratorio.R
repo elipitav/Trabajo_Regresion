@@ -1,14 +1,3 @@
-# Cargamos las librerias necesarias
-#install.packages("car")
-#install.packages("lmtest")
-#install.packages(c("ggplot2", "plotly"))
-# install.packages("MASS")
-library(MASS)
-library(car)
-library(lmtest)
-library(sm)
-library(ggplot2)
-library(plotly)
 
 ########################
 # LECTURA DE LOS DATOS #
