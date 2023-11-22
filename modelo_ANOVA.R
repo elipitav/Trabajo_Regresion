@@ -70,7 +70,6 @@ summary(modelo)
 # distinta de 0 para os valores de significación habituais (p-valor: 0.137).
 # Polo tanto, non existen evidencias significativas para rexeitar que a media
 # do grupo Z é igual á media do grupo E, polo que podemos aceptar que son iguais
-
 # - O R2 é bastante baixo (0.07627), o que indica que podemos estar omitindo
 # outras variables que axudan a explicar a variabilidade das emisións de CO2.
 # - O p-valor do F-test é significativo (< 2.2e-16), polo que podemos rexeitar a
