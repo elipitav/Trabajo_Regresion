@@ -1,3 +1,5 @@
+library(dplyr)
+
 ########################
 # LECTURA DE LOS DATOS #
 ########################
@@ -42,11 +44,6 @@ datos$tipo_combustible <- droplevels(datos$tipo_combustible)
 # Eliminamos filas duplicadas
 datos <- distinct(datos)
 
-datos$tam_motor <- log(datos$tam_motor)
-datos$consumo_ciudad <- log(datos$consumo_ciudad)
-datos$consumo_autopista <- log(datos$consumo_autopista)
-datos$emision_CO2 <- log(datos$emision_CO2)
-
 attach(datos)
 
 ##################
@@ -66,10 +63,15 @@ summary(modelo)
 # Interpretación:
 # - O intercepto correspóndese coa media do
 # primeiro grupo (tipo de combustible E). Vemos que é significativamente
-# distinta de 0 (p-valor < 2.2e-16).
-# - As desviacións dos grupos X e Z respecto do grupo E son significativamente
-# distintas de 0 (p-valor < 2.2e-16 e p-valor = 1.92e-06, respectivamente).
-# - O R2 é bastante baixo (0.07053), o que indica que podemos estar omitindo
+# distinta de 0 (p-valor: < 2.2e-16).
+# - A desviación do grupo X respecto do grupo E é significativamente
+# distinta de 0 (p-valor: < 2.2e-16).
+# - A desviación do grupo Z respecto do grupo E non é significativamente
+# distinta de 0 para os valores de significación habituais (p-valor: 0.137).
+# Polo tanto, non existen evidencias significativas para rexeitar que a media
+# do grupo Z é igual á media do grupo E, polo que podemos aceptar que son iguais
+
+# - O R2 é bastante baixo (0.07627), o que indica que podemos estar omitindo
 # outras variables que axudan a explicar a variabilidade das emisións de CO2.
 # - O p-valor do F-test é significativo (< 2.2e-16), polo que podemos rexeitar a
 # hipótese nula de que as medias dos grupos son iguais.
@@ -87,8 +89,8 @@ anova(modelo)
 TukeyHSD(aov(emision_CO2 ~ tipo_combustible))
 # Observando a saída, en primeiro lugar, na columna "p adj" observamos que
 # todas as desviacións son significativamente distintas de 0 (para os niveis
-# de significación habituais). Isto é, podemos rexeitar a hipótese nula de que
-# as medias dos grupos son iguais.
+# de significación habituais) excepto a desviación do grupo Z fronte á media
+# do grupo E, como xa vimos na saída do `summary`.
 # Por outro lado, podemos observar os extremos dos intervalos de confianza
 # para as desviacións das medias entre os grupos nas columans "lwr" e "upr".
 # Na columna "diff" observamos a diferenza entre as medias dos grupos.
@@ -97,12 +99,16 @@ TukeyHSD(aov(emision_CO2 ~ tipo_combustible))
 # grupos co metodo Tukey
 par(mfrow = c(1, 1))
 plot(TukeyHSD(aov(emision_CO2 ~ tipo_combustible)))
-# Vemos que ningún intervalo de confianza non contén ao 0, co que podemos dicir,
-# de novo, que as medias dos grupos son significativamente distintas cun nivel
-# de significación do 95%.
+# Vemos que os intervalos de confianza para as desviacións X-E e Z-X non
+# contenhen ao 0, co que podemos dicir, de novo, que as medias dos grupos son
+# significativamente distintas cun nivel de significación do 95%.
+# Non obstante, o intervalo de confianza para a desviación Z-E contén ao 0,
+# polo que non podemos dicir que as medias dos grupos Z e E sexan
+# significativamente distintas cun nivel de significación do 95%, como xa
+# apuntamos anteriormente
 
 # Calculamos os intervalos de confianza co metodo de Bonferroni
-I <- length(unique(Lugar))
+I <- length(unique(tipo_combustible))
 k <- I * (I - 1) / 2
 # Construimos intervalos de confianza segundo o metodo de Bonferroni con nivel
 # de significacion alpha/2k
@@ -158,19 +164,19 @@ indices_Z <- which(datos$tipo_combustible == "Z")
 res_E <- rstandard(lm(emision_CO2[indices_E] ~ 1))
 ind_res_E <- which(abs(res_E) > 1.96)
 indices_E_atipicos = indices_E[ind_res_E]
-length(indices_E_atipicos) # Temos 26 atipicos
+length(indices_E_atipicos) # Temos 13 atipicos
 
 # Atipicos para o grupo X
 res_X <- rstandard(lm(emision_CO2[indices_X] ~ 1))
 ind_res_X <- which(abs(res_X) > 1.96)
 indices_X_atipicos <- indices_X[ind_res_X]
-length(indices_X_atipicos) # Temos 185 atipicos
+length(indices_X_atipicos) # Temos 104 atipicos
 
 # Atipicos para o grupo Z
 res_Z <- rstandard(lm(emision_CO2[indices_Z] ~ 1))
 ind_res_Z <- which(abs(res_Z) > 1.96)
 indices_Z_atipicos <- indices_Z[ind_res_Z]
-length(indices_Z_atipicos) # Temos 104 atipicos
+length(indices_Z_atipicos) # Temos 64 atipicos
 
 par(mfrow = c(1, 3))
 plot(emision_CO2[indices_E], col = ifelse(indices_E %in% indices_E_atipicos, "red", "black"), pch = 19)
@@ -192,8 +198,10 @@ plot(emision_CO2 ~ as.numeric(tipo_combustible), col = ifelse(seq_along(emision_
 # mediante o test de Shapiro-Wilk
 plot(density(emision_CO2[tipo_combustible == "E"]))
 shapiro.test(emision_CO2[tipo_combustible == "E"])
-# Envista do p-valor, 3.818e-07, rexeitamos a hipóstese nula
-# de que os datos veñen dunha distribución normal
+# Envista do p-valor, 0.07586, non existen evidencias
+# significativas para rexeitar a hipótese de normalidade
+# con niveis de significación iguais ou inferiores a 0.05
+# para os datos do grupo E
 
 shapiro.test(emision_CO2[tipo_combustible == "X"])
 plot(density(emision_CO2[tipo_combustible == "X"]))
@@ -201,10 +209,10 @@ plot(density(emision_CO2[tipo_combustible == "X"]))
 
 shapiro.test(emision_CO2[tipo_combustible == "Z"])
 plot(density(emision_CO2[tipo_combustible == "Z"]))
-# p-valor: 1.337e-10
+# p-valor: 3.303e-16
 
-# En vista dos p-valores, os datos de ningun dos grupos
-# venhen dunha distribucion normal
+# En vista dos p-valores, soamente podemos aceptar que os datos
+# do grupo E veñen dunha distribución normal.
 
 # Realizamos duas transformacions dos datos para ver se conseguimos
 # solucionar os problemas asociados a non normalidade (log e sqrt).
@@ -215,29 +223,29 @@ emision_CO2_log <- log(emision_CO2)
 
 plot(density(emision_CO2_log[tipo_combustible == "E"]))
 shapiro.test(emision_CO2_log[tipo_combustible == "E"])
-# p-valor: 2.451e-08
+# p-valor: 0.000314 -> empeoramos o p-valor sen a transformación
 
 shapiro.test(emision_CO2_log[tipo_combustible == "X"])
 plot(density(emision_CO2_log[tipo_combustible == "X"]))
-# p-valor: < 2.2e-16
+# p-valor: 7.238e-09
 
 shapiro.test(emision_CO2_log[tipo_combustible == "Z"])
 plot(density(emision_CO2_log[tipo_combustible == "Z"]))
-# p-valor: 9.003e-10
+# p-valor: 8.935e-06
 
 # SQRT
 emision_CO2_sqrt <- sqrt(emision_CO2)
 plot(density(emision_CO2_sqrt[tipo_combustible == "E"]))
 shapiro.test(emision_CO2_sqrt[tipo_combustible == "E"])
-# p-valor: 9.971e-08
+# p-valor: 0.03394 -> empeoramos o p-valor sen a transformación
 
 shapiro.test(emision_CO2_sqrt[tipo_combustible == "X"])
 plot(density(emision_CO2_sqrt[tipo_combustible == "X"]))
-# p-valor: < 2.2e-16
+# p-valor: 1.369e-08
 
 shapiro.test(emision_CO2_sqrt[tipo_combustible == "Z"])
 plot(density(emision_CO2_sqrt[tipo_combustible == "Z"]))
-# p-valor: 4.582e-10
+# p-valor: 4.71e-10
 
 # Comprobamos a hipotese de homocedasticidade mediante o test de
 # Levene. En vista do p-valor, existen evidencias para todos os niveis
@@ -245,4 +253,4 @@ plot(density(emision_CO2_sqrt[tipo_combustible == "Z"]))
 abs_res <- abs(modelo$residuals)
 levene_modelo <- lm(abs_res ~ tipo_combustible)
 anova(levene_modelo)
-# p-valor: < 2.2e-16
+# p-valor: 2.587e-08
