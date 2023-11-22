@@ -117,6 +117,7 @@ desv <- sqrt(sum((emision_CO2 - medias[tipo_combustible])^2) / (n - I))
 
 intervalos_bonferroni <- data.frame(matrix(0, nrow = 0, ncol = 3))
 colnames(intervalos_bonferroni) <- c("diff", "lwr", "upr")
+tipos_combustible <- levels(tipo_combustible)
 
 for (i in seq_len(I)) {
   if (i == I) break
@@ -128,7 +129,7 @@ for (i in seq_len(I)) {
     df <- data.frame(matrix(0, nrow = 1, ncol = 3))
     colnames(df) <- c("diff", "lwr", "upr")
     df[1, ] <- c(diferencia, intervalo)
-    rownames(df) <- c(paste(j, i, sep = "-"))
+    rownames(df) <- c(paste(tipos_combustible[j], tipos_combustible[i], sep = "-"))
     intervalos_bonferroni <- rbind(intervalos_bonferroni, df)
   }
 }
@@ -140,8 +141,108 @@ intervalos_bonferroni
 # metodo de Bonferroni do seguinte xeito
 pairwise.t.test(emision_CO2, tipo_combustible, p.adjust.method = "bonferroni")
 
+#############
+# DIAGNOSIS #
+#############
+
+# Estudamos os datos atipicos por grupos. Para iso, calculamos
+# os residuos estandarizados por grupos e calculamos aqueles que
+# son maiores que 1.96 (que corresponden a un nivel de significación
+# do 95% para unha distribución normal)
+
+indices_E <- which(datos$tipo_combustible == "E")
+indices_X <- which(datos$tipo_combustible == "X")
+indices_Z <- which(datos$tipo_combustible == "Z")
+
+# Atipicos para o grupo E
+res_E <- rstandard(lm(emision_CO2[indices_E] ~ 1))
+ind_res_E <- which(abs(res_E) > 1.96)
+indices_E_atipicos = indices_E[ind_res_E]
+length(indices_E_atipicos) # Temos 26 atipicos
+
+# Atipicos para o grupo X
+res_X <- rstandard(lm(emision_CO2[indices_X] ~ 1))
+ind_res_X <- which(abs(res_X) > 1.96)
+indices_X_atipicos <- indices_X[ind_res_X]
+length(indices_X_atipicos) # Temos 185 atipicos
+
+# Atipicos para o grupo Z
+res_Z <- rstandard(lm(emision_CO2[indices_Z] ~ 1))
+ind_res_Z <- which(abs(res_Z) > 1.96)
+indices_Z_atipicos <- indices_Z[ind_res_Z]
+length(indices_Z_atipicos) # Temos 104 atipicos
+
+par(mfrow = c(1, 3))
+plot(emision_CO2[indices_E], col = ifelse(indices_E %in% indices_E_atipicos, "red", "black"), pch = 19)
+plot(emision_CO2[indices_X], col = ifelse(indices_X %in% indices_X_atipicos, "red", "black"), pch = 19)
+plot(emision_CO2[indices_Z], col = ifelse(indices_Z %in% indices_Z_atipicos, "red", "black"), pch = 19)
+title("Datos atípicos en cada grupo", line = -2, outer = TRUE, cex = 1.5)
+
+# Debuxamos os atipicos en vermello, en total hai 315 atipicos
+indices_atipicos <- c(indices_E_atipicos, indices_X_atipicos, indices_Z_atipicos)
+par(mfrow = c(1, 1))
+plot(emision_CO2 ~ as.numeric(tipo_combustible), col = ifelse(seq_along(emision_CO2) %in% indices_atipicos, "red", "black"), pch = 19)
+
+
 ##############
 # VALIDACION #
 ##############
 
+# Comprobamos a hipotese de normalidade dentro de cada grupo
+# mediante o test de Shapiro-Wilk
+plot(density(emision_CO2[tipo_combustible == "E"]))
+shapiro.test(emision_CO2[tipo_combustible == "E"])
+# Envista do p-valor, 3.818e-07, rexeitamos a hipóstese nula
+# de que os datos veñen dunha distribución normal
 
+shapiro.test(emision_CO2[tipo_combustible == "X"])
+plot(density(emision_CO2[tipo_combustible == "X"]))
+# p-valor: 1.339e-14
+
+shapiro.test(emision_CO2[tipo_combustible == "Z"])
+plot(density(emision_CO2[tipo_combustible == "Z"]))
+# p-valor: 1.337e-10
+
+# En vista dos p-valores, os datos de ningun dos grupos
+# venhen dunha distribucion normal
+
+# Realizamos duas transformacions dos datos para ver se conseguimos
+# solucionar os problemas asociados a non normalidade (log e sqrt).
+# Non conseguimos solucionar o problema en vista dos p-valores obtidos
+
+# LOG
+emision_CO2_log <- log(emision_CO2)
+
+plot(density(emision_CO2_log[tipo_combustible == "E"]))
+shapiro.test(emision_CO2_log[tipo_combustible == "E"])
+# p-valor: 2.451e-08
+
+shapiro.test(emision_CO2_log[tipo_combustible == "X"])
+plot(density(emision_CO2_log[tipo_combustible == "X"]))
+# p-valor: < 2.2e-16
+
+shapiro.test(emision_CO2_log[tipo_combustible == "Z"])
+plot(density(emision_CO2_log[tipo_combustible == "Z"]))
+# p-valor: 9.003e-10
+
+# SQRT
+emision_CO2_sqrt <- sqrt(emision_CO2)
+plot(density(emision_CO2_sqrt[tipo_combustible == "E"]))
+shapiro.test(emision_CO2_sqrt[tipo_combustible == "E"])
+# p-valor: 9.971e-08
+
+shapiro.test(emision_CO2_sqrt[tipo_combustible == "X"])
+plot(density(emision_CO2_sqrt[tipo_combustible == "X"]))
+# p-valor: < 2.2e-16
+
+shapiro.test(emision_CO2_sqrt[tipo_combustible == "Z"])
+plot(density(emision_CO2_sqrt[tipo_combustible == "Z"]))
+# p-valor: 4.582e-10
+
+# Comprobamos a hipotese de homocedasticidade mediante o test de
+# Levene. En vista do p-valor, existen evidencias para todos os niveis
+# de significación habituais de que as varianzas son distintas
+abs_res <- abs(modelo$residuals)
+levene_modelo <- lm(abs_res ~ tipo_combustible)
+anova(levene_modelo)
+# p-valor: < 2.2e-16
