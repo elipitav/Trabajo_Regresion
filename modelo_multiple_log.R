@@ -38,7 +38,6 @@ colnames(datos) <- nombres_columnas
 datos$tam_motor <- as.numeric(datos$tam_motor)
 datos$consumo_ciudad <- as.numeric(datos$consumo_ciudad)
 datos$consumo_autopista <- as.numeric(datos$consumo_autopista)
-datos$consumo_autopista <- as.numeric(datos$consumo_combinado)
 datos$emision_CO2 <- as.numeric(datos$emision_CO2)
 datos$n_cilindros <- as.factor(datos$n_cilindros)
 datos$tipo_combustible <- as.factor(datos$tipo_combustible)
