@@ -1,5 +1,8 @@
 library(dplyr)
 library(plotly)
+library(car)
+library(lmtest)
+library(lawstat)
 
 ########################
 # LECTURA DE LOS DATOS #
@@ -482,4 +485,234 @@ length(indices_Z_atipicos) # Temos 61 atipicos
 # VALIDACION #
 ##############
 
-### Normalidad ###
+### Normalidade ###
+
+# Para un nivel de significacion de 0.05, podemos rexeitar
+# a hipotese nula de normalidade para os residuos dos modelos
+# dos 3 grupos
+res_e <- rstandard(modelo_e)
+shapiro.test(res_e) # p-valor: 0.04134
+par(mfrow = c(1, 2))
+hist(res_e, freq = FALSE)
+qqPlot(res_e)
+
+res_x <- rstandard(modelo_x)
+shapiro.test(res_x) # p-valor: 4.645e-08
+par(mfrow = c(1, 2))
+hist(res_x, freq = FALSE)
+qqPlot(res_x)
+
+res_z <- rstandard(modelo_z)
+shapiro.test(res_z) # p-valor: 3.425e-07
+par(mfrow = c(1, 2))
+hist(res_z, freq = FALSE)
+qqPlot(res_z)
+
+### Homocedasticidade ###
+
+# Test de Breusch-Pagan:
+# H0: homocedasticidade vs Ha: varianza dependente das explicativas
+bptest(modelo_e) # p-valor: 0.0002312
+
+# Test de Harrison-McCabe:
+# H0: homocedasticidade vs Ha: varianza ten un punto de cambio.
+set.seed(1234)
+hmctest(modelo_e) # p-valor: 0.819
+
+# En vista dos p-valores dos test anteriores, podemos rexeitar a
+# hipotese de homocedasticidade para o grupo E, mais non existen
+# evidencias para rexeitar a hipotese de homocedasticidade fronte
+# a hipotese alternativa de que a varianza ten un punto de cambio.
+
+# Residuos fronte a predicion
+par(mfrow = c(1, 1))
+plot(res_e ~ modelo_e$fitted.values, pch = 19)
+abline(h = 0, lty = 2)
+abline(h = 1.96, lty = 2, col = "red")
+abline(h = -1.96, lty = 2, col = "red")
+
+# En vista dos p-valores dos test, sucede o mesmo para o grupo X
+bptest(modelo_x) # p-valor: 4.828e-16
+set.seed(1234)
+hmctest(modelo_x) # p-valor: 0.892
+plot(res_x ~ modelo_x$fitted.values, pch = 19)
+abline(h = 0, lty = 2)
+abline(h = 1.96, lty = 2, col = "red")
+abline(h = -1.96, lty = 2, col = "red")
+
+# En vista dos p-valores dos test, sucede o mesmo para o grupo Z
+bptest(modelo_z) # p-valor: 6.219e-16
+set.seed(1234)
+hmctest(modelo_z) # p-valor: 0.558
+plot(res_z ~ modelo_z$fitted.values, pch = 19)
+abline(h = 0, lty = 2)
+abline(h = 1.96, lty = 2, col = "red")
+abline(h = -1.96, lty = 2, col = "red")
+
+### Linealidade ###
+# Test de Ramsey:
+# H0: linealidade; Ha: polinomio de grao 2 ou 3
+resettest(modelo_e) # p-valor: 1.571e-08
+# Test de Harvey-Collier:
+# H0: linealidade; Ha: non linealidade (concavidade/convexidade
+# globais)
+harvtest(modelo_e) # p-valor: 1.88e-14
+
+# En vista dos p-valores dos test, podemos rexeitar a hipotese de
+# linealidade para o grupo E.
+
+# Graficamente:
+plot(emision_CO2_sa[indices_E] ~ modelo_e$fitted.values, col = "red", pch = 19) # Xeral
+abline(c(0, 1))
+
+# En vista dos p-valores dos test, podemos rexeitar a hipotese de
+# linealidade para o grupo X.
+resettest(modelo_x) # p-valor: < 2.2e-16
+harvtest(modelo_x) # p-valor: < 2.2e-16
+
+plot(emision_CO2_sa[indices_X] ~ modelo_x$fitted.values, col = "blue", pch = 19) # Xeral
+abline(c(0, 1))
+
+# En vista dos p-valores dos test, podemos rexeitar a hipotese de
+# linealidade para o grupo Z.
+resettest(modelo_z) # p-valor: 6.263e-06
+harvtest(modelo_z) # p-valor: < 2.2e-16
+
+plot(emision_CO2_sa[indices_Z] ~ modelo_z$fitted.values, col = "green", pch = 19) # Xeral
+abline(c(0, 1))
+
+##############
+# IOC FINAIS #
+##############
+
+# Calculamos intervalo de confianza ao 95% das pendentes
+# Tanto para ao coeficiente asociado a tam_motor como para o
+# intercepto non existen evidencias significativas de que sexan
+# distintos de 0 para o grupo E
+confint(modelo_e)
+# No caso dos modelos para os grupos X e Z, si que existen evidencias
+# significativas de que os coeficientes asociados a tam_motor e o
+# intercepto son distintos de 0
+confint(modelo_x)
+confint(modelo_z)
+
+################################
+# REPRESENTACION FINAL GRAFICA #
+################################
+
+### GRUPO E ###
+
+puntos_e <- plot_ly(
+  x = consumo_ciudad_sa[indices_E], y = tam_motor_sa[indices_E], z = emision_CO2_sa[indices_E],
+  type = "scatter3d", mode = "markers",
+  marker = list(size = 3, color = "red")
+) %>%
+  layout(scene = list(
+    xaxis = list(title = "consumo en ciudad"),
+    yaxis = list(title = "tamanho de motor"),
+    zaxis = list(title = "emision de CO2")
+  ))
+
+coef_e <- coef(modelo_e)
+consumo_e <- c(min(consumo_ciudad_sa[indices_E]), max(consumo_ciudad_sa[indices_E]))
+motor_e <- c(min(tam_motor_sa[indices_E]), max(tam_motor_sa[indices_E]))
+
+grid <- expand.grid(
+  consumo_ciudad = consumo_e,
+  tam_motor = motor_e
+)
+
+predicted_values <- coef_e[1] + coef_e[2] * grid$consumo_ciudad + coef_e[3] * grid$tam_motor
+predicted_values <- t(matrix(predicted_values, ncol = 2, nrow = 2))
+predicted_values
+
+plano_e <- plot_ly(
+  x = consumo_e, y = motor_e, z = predicted_values
+) %>%
+  add_surface(surfacecolor = c(0, 0, 0), opacity = 0.75) %>%
+  layout(scene = list(
+    xaxis = list(title = "consumo en ciudad"),
+    yaxis = list(title = "tamanho de motor"),
+    zaxis = list(title = "emision de CO2")
+  ))
+
+grafico <- subplot(puntos_e, plano_e)
+grafico
+
+### GRUPO X ###
+
+puntos_x <- plot_ly(
+  x = consumo_ciudad_sa[indices_X], y = tam_motor_sa[indices_X], z = emision_CO2_sa[indices_X],
+  type = "scatter3d", mode = "markers",
+  marker = list(size = 3, color = "blue")
+) %>%
+  layout(scene = list(
+    xaxis = list(title = "consumo en ciudad"),
+    yaxis = list(title = "tamanho de motor"),
+    zaxis = list(title = "emision de CO2")
+  ))
+
+coef_x <- coef(modelo_x)
+consumo_x <- c(min(consumo_ciudad_sa[indices_X]), max(consumo_ciudad_sa[indices_X]))
+motor_x <- c(min(tam_motor_sa[indices_X]), max(tam_motor_sa[indices_X]))
+
+grid <- expand.grid(
+  consumo_ciudad = consumo_x,
+  tam_motor = motor_x
+)
+
+predicted_values <- coef_x[1] + coef_x[2] * grid$consumo_ciudad + coef_x[3] * grid$tam_motor
+predicted_values <- t(matrix(predicted_values, ncol = 2, nrow = 2))
+predicted_values
+
+plano_x <- plot_ly(
+  x = consumo_x, y = motor_x, z = predicted_values
+) %>%
+  add_surface(surfacecolor = c(0, 0, 0), opacity = 0.75) %>%
+  layout(scene = list(
+    xaxis = list(title = "consumo en ciudad"),
+    yaxis = list(title = "tamanho de motor"),
+    zaxis = list(title = "emision de CO2")
+  ))
+
+grafico <- subplot(puntos_x, plano_x)
+grafico
+
+### GRUPO Z ###
+
+puntos_z <- plot_ly(
+  x = consumo_ciudad_sa[indices_Z], y = tam_motor_sa[indices_Z], z = emision_CO2_sa[indices_Z],
+  type = "scatter3d", mode = "markers",
+  marker = list(size = 3, color = "green")
+) %>%
+  layout(scene = list(
+    xaxis = list(title = "consumo en ciudad"),
+    yaxis = list(title = "tamanho de motor"),
+    zaxis = list(title = "emision de CO2")
+  ))
+
+coef_z <- coef(modelo_z)
+consumo_z <- c(min(consumo_ciudad_sa[indices_Z]), max(consumo_ciudad_sa[indices_Z]))
+motor_z <- c(min(tam_motor_sa[indices_Z]), max(tam_motor_sa[indices_Z]))
+
+grid <- expand.grid(
+  consumo_ciudad = consumo_z,
+  tam_motor = motor_z
+)
+
+predicted_values <- coef_z[1] + coef_z[2] * grid$consumo_ciudad + coef_z[3] * grid$tam_motor
+predicted_values <- t(matrix(predicted_values, ncol = 2, nrow = 2))
+predicted_values
+
+plano_z <- plot_ly(
+  x = consumo_z, y = motor_z, z = predicted_values
+) %>%
+  add_surface(surfacecolor = c(0, 0, 0), opacity = 0.75) %>%
+  layout(scene = list(
+    xaxis = list(title = "consumo en ciudad"),
+    yaxis = list(title = "tamanho de motor"),
+    zaxis = list(title = "emision de CO2")
+  ))
+
+grafico <- subplot(puntos_z, plano_z)
+grafico
