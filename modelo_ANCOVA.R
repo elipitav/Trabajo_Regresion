@@ -492,21 +492,26 @@ length(indices_Z_atipicos) # Temos 61 atipicos
 # dos 3 grupos
 res_e <- rstandard(modelo_e)
 shapiro.test(res_e) # p-valor: 0.04134
-par(mfrow = c(1, 2))
-hist(res_e, freq = FALSE)
-qqPlot(res_e)
+par(mfrow = c(1, 2), cex = 2)
+hist(res_e, freq = FALSE, main = "", xlab = "Residuos estandarizados", ylab = "Densidad")
+qqPlot(res_e, cex = 0.5, ylab = "Residuos estandarizados")
+title("Residuos estandarizados del grupo E", line = -2, outer = TRUE, cex = 2.5)
 
 res_x <- rstandard(modelo_x)
 shapiro.test(res_x) # p-valor: 4.645e-08
-par(mfrow = c(1, 2))
-hist(res_x, freq = FALSE)
-qqPlot(res_x)
+par(mfrow = c(1, 2), cex = 2)
+hist(res_x, freq = FALSE, main = "", xlab = "Residuos estandarizados", ylab = "Densidad")
+qqPlot(res_x, cex = 0.5, ylab = "Residuos estandarizados")
+title("Residuos estandarizados del grupo X", line = -2, outer = TRUE, cex = 2.5)
+
 
 res_z <- rstandard(modelo_z)
 shapiro.test(res_z) # p-valor: 3.425e-07
-par(mfrow = c(1, 2))
-hist(res_z, freq = FALSE)
-qqPlot(res_z)
+par(mfrow = c(1, 2), cex = 2)
+hist(res_z, freq = FALSE, main = "", xlab = "Residuos estandarizados", ylab = "Densidad")
+qqPlot(res_z, cex = 0.5, ylab = "Residuos estandarizados")
+title("Residuos estandarizados del grupo Z", line = -2, outer = TRUE, cex = 2.5)
+
 
 ### Homocedasticidade ###
 
@@ -561,7 +566,7 @@ harvtest(modelo_e) # p-valor: 1.88e-14
 # En vista dos p-valores dos test, podemos rexeitar a hipotese de
 # linealidade para o grupo E.
 
-# Graficamente:
+# Graficamente (so incluimos a variable consumo_ciudad)
 plot(emision_CO2_sa[indices_E] ~ modelo_e$fitted.values, col = "red", pch = 19) # Xeral
 abline(c(0, 1))
 
@@ -570,6 +575,7 @@ abline(c(0, 1))
 resettest(modelo_x) # p-valor: < 2.2e-16
 harvtest(modelo_x) # p-valor: < 2.2e-16
 
+# Graficamente (so incluimos a variable consumo_ciudad)
 plot(emision_CO2_sa[indices_X] ~ modelo_x$fitted.values, col = "blue", pch = 19) # Xeral
 abline(c(0, 1))
 
@@ -578,6 +584,7 @@ abline(c(0, 1))
 resettest(modelo_z) # p-valor: 6.263e-06
 harvtest(modelo_z) # p-valor: < 2.2e-16
 
+# Graficamente (so incluimos a variable consumo_ciudad)
 plot(emision_CO2_sa[indices_Z] ~ modelo_z$fitted.values, col = "green", pch = 19) # Xeral
 abline(c(0, 1))
 

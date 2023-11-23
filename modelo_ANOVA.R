@@ -50,7 +50,7 @@ attach(datos)
 
 # Representamos nun diagrama de caixas os datos
 par(mfrow = c(1, 1))
-plot(emision_CO2 ~ tipo_combustible)
+plot(emision_CO2 ~ tipo_combustible, xlab = "Tipo de combustible", ylab = "Emisión de CO2")
 
 # Axustamos un modelo ANOVA. Utilizamos a parametrizacion
 # que emprega un grupo de referencia
@@ -177,17 +177,20 @@ ind_res_Z <- which(abs(res_Z) > 1.96)
 indices_Z_atipicos <- indices_Z[ind_res_Z]
 length(indices_Z_atipicos) # Temos 64 atipicos
 
-par(mfrow = c(1, 3))
+par(mfrow = c(1, 3), cex.main = 3)
 plot(emision_CO2[indices_E], col = ifelse(indices_E %in% indices_E_atipicos, "red", "black"), pch = 19)
 plot(emision_CO2[indices_X], col = ifelse(indices_X %in% indices_X_atipicos, "red", "black"), pch = 19)
 plot(emision_CO2[indices_Z], col = ifelse(indices_Z %in% indices_Z_atipicos, "red", "black"), pch = 19)
-title("Datos atípicos en cada grupo", line = -2, outer = TRUE, cex = 1.5)
+title("Datos atípicos en cada grupo", line = -2, outer = TRUE)
 
 # Debuxamos os atipicos en vermello, en total hai 315 atipicos
 indices_atipicos <- c(indices_E_atipicos, indices_X_atipicos, indices_Z_atipicos)
-par(mfrow = c(1, 1))
-plot(emision_CO2 ~ as.numeric(tipo_combustible), col = ifelse(seq_along(emision_CO2) %in% indices_atipicos, "red", "black"), pch = 19)
-
+par(mfrow = c(1, 1), cex.main = 2.5)
+plot(emision_CO2 ~ as.numeric(tipo_combustible),
+  col = ifelse(seq_along(emision_CO2) %in% indices_atipicos, "red", "black"),
+  pch = 19, xlab="Tipo de combustible", ylab="Emisión de CO2"
+)
+title("Datos atípicos en cada grupo", line = -2, outer = TRUE)
 
 ##############
 # VALIDACION #
@@ -195,7 +198,8 @@ plot(emision_CO2 ~ as.numeric(tipo_combustible), col = ifelse(seq_along(emision_
 
 # Comprobamos a hipotese de normalidade dentro de cada grupo
 # mediante o test de Shapiro-Wilk
-plot(density(emision_CO2[tipo_combustible == "E"]))
+plot(density(emision_CO2[tipo_combustible == "E"]), 
+main = "Densidad de las emisiones de CO2 en el grupo E")
 shapiro.test(emision_CO2[tipo_combustible == "E"])
 # Envista do p-valor, 0.07586, non existen evidencias
 # significativas para rexeitar a hipótese de normalidade
