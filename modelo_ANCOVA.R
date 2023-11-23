@@ -233,6 +233,38 @@ anova(modelo_si_2, modelo_ci_3)
 # anova, xa que non son anidados. Non obstante, ao preferir modelo_ci_3 ante
 # estes dous, xa non realizamos a comparación.
 
+#################
+# COLINEALIDADE #
+#################
+
+indices_E <- which(datos$tipo_combustible == "E")
+indices_X <- which(datos$tipo_combustible == "X")
+indices_Z <- which(datos$tipo_combustible == "Z")
+
+modelo_e <- lm(emision_CO2[indices_E] ~ consumo_ciudad[indices_E] + tam_motor[indices_E])
+modelo_x <- lm(emision_CO2[indices_X] ~ consumo_ciudad[indices_X] + tam_motor[indices_X])
+modelo_z <- lm(emision_CO2[indices_Z] ~ consumo_ciudad[indices_Z] + tam_motor[indices_Z])
+
+# En xeral, obtemos covarianzas altas en ambos os tres modelos
+x <- cbind(tam_motor[indices_E], consumo_ciudad[indices_E])
+cor(x)
+x <- cbind(tam_motor[indices_X], consumo_ciudad[indices_X])
+cor(x)
+x <- cbind(tam_motor[indices_Z], consumo_ciudad[indices_Z])
+cor(x)
+
+FIV <- c()
+Rj2 <- cor(tam_motor[indices_E], fitted(lm(tam_motor[indices_E] ~ consumo_ciudad[indices_E])))^2
+FIV["modelo_e"] <- 1 / (1 - Rj2)
+Rj2 <- cor(tam_motor[indices_X], fitted(lm(tam_motor[indices_X] ~ consumo_ciudad[indices_X])))^2
+FIV["modelo_x"] <- 1 / (1 - Rj2)
+Rj2 <- cor(tam_motor[indices_Z], fitted(lm(tam_motor[indices_Z] ~ consumo_ciudad[indices_Z])))^2
+FIV["modelo_z"] <- 1 / (1 - Rj2)
+
+# En ningun dos 3 casos o FIV supera o valor de 5, polo que consideramos
+# que non hai problemas de colinealidade en ningun dos 3 modelos
+FIV
+
 ############
 # DIAGNOSE #
 ############
@@ -449,6 +481,7 @@ summary(modelo_sa)
 # distinta de 0 (p-valor: 0.5265) e empeora o p-valor do modelo anterior
 # (0.121).
 # - O R2 mellora con respecto ao anterior modelo (0.9811).
+
 
 ############
 # DIAGNOSE #
